@@ -5,16 +5,25 @@ import csv
 CARD_URL = 'https://stat.rgdb.ru/component/method/'
 CARD_PARAMS = {'view': 'library', 'Itemid': '0', 'id': '28041'}
 
-LIST_URL = 'https://stat.rgdb.ru/?filter_federal=5&filter_type=0&filter_region=71&filter_level=0&filter_area=0&filter_finance=0&view=libraries&start=0'
+LIST_URL = 'https://stat.rgdb.ru/'
+LIST_PARAMS = {'filter_federal': '5',
+               'filter_type': '0',
+               'filter_region': '71',
+               'filter_level': '0',
+               'filter_area': '0',
+               'filter_finance': '0',
+               'view': 'libraries'}
 HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0', 'accept': '*/*'}
 HOST = 'https://stat.rgdb.ru'
 FILE = '/Users/vadim/Documents/libraries.csv'
 
+CARDS_BY_PAGE = 30
+
 
 def get_html(url, params=None):
-    r = requests.get(url, headers=HEADERS, params=params)
-    return r
+    response = requests.get(url, headers=HEADERS, params=params)
+    return response
 
 
 def get_card_urls(html):
@@ -60,20 +69,28 @@ def save_file(items, path):
 
 
 def parse():
-    list_html = get_html(LIST_URL)
-    print(list_html.status_code)
-    if list_html.status_code == 200:
-        card_urls = get_card_urls(list_html.text)
+    first_list_html = get_html(
+        LIST_URL, params={**LIST_PARAMS, **{'start': '0'}})
+    if first_list_html.status_code == 200:
         info = []
-        pages_count = get_pages_count(list_html.text)
-        print(pages_count)
+        pages_count = get_pages_count(first_list_html.text)
 
-        for card_url in card_urls:
-            print('starting on: ' + card_url)
-            card_html = get_html(card_url)
-            info.append(get_card_page_content(card_html.text, card_url))
+        for page in range(1, pages_count + 1):
+            start = page * CARDS_BY_PAGE
+            print(f'Парсинг страницы {page} из {pages_count}... ({start})')
+            params = {**LIST_PARAMS, **{'start': start}}
+
+            list_html = first_list_html if page == 1 else get_html(
+                LIST_URL, params=params)
+            card_urls = get_card_urls(list_html.text)
+
+            for card_url in card_urls:
+                print('Обрабатываем: ' + card_url)
+                card_html = get_html(card_url)
+                info.append(get_card_page_content(card_html.text, card_url))
 
         save_file(info, FILE)
+        print('Готово, файл сохранен: ', FILE)
     else:
         print('Error')
 
