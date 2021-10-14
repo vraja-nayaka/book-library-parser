@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import csv
+import re
 
 CARD_URL = 'https://stat.rgdb.ru/component/method/'
 CARD_PARAMS = {'view': 'library', 'Itemid': '0', 'id': '28041'}
@@ -17,6 +18,11 @@ HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:71.0) Gecko/20100101 Firefox/71.0', 'accept': '*/*'}
 HOST = 'https://stat.rgdb.ru'
 FILE = '/Users/vadim/Documents/libraries.csv'
+
+REQUIRED_FIELDS = ['Почтовый адрес', 'Телефон',
+                   'Наименование ЦБС', 'Руководитель библиотеки', 'E-mail']
+WRITE_FIELDS = ['Ссылка', 'Адрес', 'Телефон',
+                'Наименование', 'Руководитель библиотеки', 'E-mail']
 
 CARDS_BY_PAGE = 30
 
@@ -39,12 +45,20 @@ def get_card_urls(html):
 
 def get_card_page_content(html, url):
     soup = BeautifulSoup(html, 'html.parser')
-    library_tds = soup.find_all('td')
-    content = []
+    content = [url]
 
-    for item in library_tds:
-        content.append(item.get_text().replace('\n', '').replace('  ', ''))
-        content[0] = url
+    for required_field in REQUIRED_FIELDS:
+        labels = soup.find_all('th', string=re.compile(required_field))
+        result_fields = set()
+
+        for label in labels:
+            label_text = label.find_next_sibling().get_text()
+            prepared_text = label_text.replace('\n', '').replace('  ', '')
+
+            if prepared_text != '' and prepared_text != ' ':
+                result_fields.add(prepared_text)
+
+        content.append(', '.join(result_fields))
 
     return content
 
@@ -61,11 +75,9 @@ def get_pages_count(html):
 def save_file(items, path):
     with open(path, 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';', dialect='excel')
-        writer.writerow(['Ссылка', 'Адрес', 'Телефон',
-                        'Наименование', 'Руководитель библиотеки', 'E-mail'])
+        writer.writerow(WRITE_FIELDS)
         for item in items:
-            writer.writerow([item[0], item[10], item[11] + ', ' +
-                            item[15], item[12], item[14], item[13] + ' ' + item[15]])
+            writer.writerow(item)
 
 
 def parse():
