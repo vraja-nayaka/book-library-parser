@@ -7,9 +7,9 @@ CARD_URL = 'https://stat.rgdb.ru/component/method/'
 CARD_PARAMS = {'view': 'library', 'Itemid': '0', 'id': '28041'}
 
 LIST_URL = 'https://stat.rgdb.ru/'
-LIST_PARAMS = {'filter_federal': '5',
+LIST_PARAMS = {'filter_federal': '6',
                'filter_type': '0',
-               'filter_region': '71',
+               'filter_region': '6',
                'filter_level': '0',
                'filter_area': '0',
                'filter_finance': '0',
